@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Promobet Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep:#081b10;
+    --board:#0d2818;
+    --cell:#123726;
+    --line:#1c3a26;
+    --yellow:#ffd400;
+    --yellow-dim:#c9a600;
+    --paper:#e8e4d8;
+    --dim:#b9b6a9;
+    --win:#5fbf7a;
+    --loss:#e0654a;
+    box-sizing:border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--deep);
+    color:var(--paper);
+    font-family:'Space Grotesk',system-ui,sans-serif;
+    padding:20px 14px 40px;
+  }
+  .wrap{max-width:1100px;margin:0 auto;}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding-bottom:12px;border-bottom:1px solid var(--yellow-dim);margin-bottom:22px;
+  }
+  header h1{margin:0;font-size:26px;font-weight:700;color:var(--yellow);letter-spacing:0.02em;}
+  header .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--yellow-dim);letter-spacing:0.08em;}
+
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
+  .stat{background:var(--cell);border-radius:8px;padding:16px 18px;}
+  .stat .label{font-size:11px;color:var(--dim);letter-spacing:0.05em;margin-bottom:6px;}
+  .stat .value{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;color:var(--yellow);}
+  .stat .value.pos{color:var(--win);} .stat .value.neg{color:var(--loss);}
+
+  .card{background:var(--board);border:1px solid var(--line);border-radius:8px;padding:18px;margin-bottom:22px;}
+  .card h2{margin:0 0 14px;font-size:15px;color:var(--yellow);letter-spacing:0.04em;font-weight:600;}
+
+  .form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field.wide{grid-column:span 2;}
+  label{font-size:11.5px;color:var(--dim);}
+  input,select{
+    background:var(--deep);border:1px solid var(--line);border-radius:4px;
+    color:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:14px;
+    padding:9px 10px;outline:none;width:100%;
+  }
+  input:focus,select:focus{border-color:var(--yellow-dim);}
+  input::placeholder{font-family:'Space Grotesk',sans-serif;font-size:12px;color:#6d7a70;}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  button{
+    font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:600;
+    border:none;border-radius:5px;padding:11px 18px;cursor:pointer;
+  }
+  .btn-primary{background:var(--yellow);color:var(--deep);}
+  .btn-ghost{background:transparent;color:var(--dim);border:1px solid var(--line);}
+  .btn-ghost:hover{color:var(--paper);border-color:var(--yellow-dim);}
+
+  .preview{
+    margin-top:12px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--dim);
+    background:var(--deep);border-radius:5px;padding:10px 12px;
+  }
+  .preview strong{color:var(--win);}
+  .preview strong.neg{color:var(--loss);}
+
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{
+    text-align:left;font-size:10.5px;letter-spacing:0.06em;color:var(--yellow-dim);
+    font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  td{padding:11px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  td.num{font-family:'IBM Plex Mono',monospace;text-align:right;}
+  td.pos{color:var(--win);font-weight:600;} td.neg{color:var(--loss);font-weight:600;}
+  tr:last-child td{border-bottom:none;}
+  .del{background:none;border:none;color:var(--loss);cursor:pointer;font-size:16px;padding:2px 6px;}
+  .empty{color:var(--dim);font-size:13px;padding:24px 10px;text-align:center;}
+
+  .note{font-size:11.5px;color:var(--dim);line-height:1.5;margin-top:10px;}
+  @media (max-width:520px){ .field.wide{grid-column:span 1;} header h1{font-size:21px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>PROMOBET</h1>
+    <div class="sub">TRACKER</div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="label">TOTAL PROFIT</div><div class="value" id="sTotal">$0.00</div></div>
+    <div class="stat"><div class="label">OVERALL ROI</div><div class="value" id="sRoi">0%</div></div>
+    <div class="stat"><div class="label">PROMOS LOGGED</div><div class="value" id="sCount">0</div></div>
+    <div class="stat"><div class="label">AVG PER PROMO</div><div class="value" id="sAvg">$0.00</div></div>
+  </div>
+
+  <div class="card">
+    <h2>ADD A PROMO</h2>
+    <div class="form">
+      <div class="field"><label for="date">Date</label><input id="date" type="date"></div>
+      <div class="field"><label for="bookie">Bookie</label><input id="bookie" type="text" placeholder="Ladbrokes"></div>
+      <div class="field"><label for="account">Account</label><input id="account" type="text" placeholder="Mine"></div>
+      <div class="field wide"><label for="promo">What the promo was</label><input id="promo" type="text" placeholder="Deposit $50 get $50 bonus"></div>
+      <div class="field"><label for="cashIn">Money you put in ($)</label><input id="cashIn" type="number" step="0.01" placeholder="50"></div>
+      <div class="field"><label for="cashBack">Money you got back ($)</label><input id="cashBack" type="number" step="0.01" placeholder="48.50"></div>
+      <div class="field"><label for="bonusCash">Cash from bonus bets ($)</label><input id="bonusCash" type="number" step="0.01" placeholder="35"></div>
+    </div>
+    <div class="preview" id="preview">Profit: <strong>$0.00</strong> &nbsp;·&nbsp; ROI: <strong>0%</strong></div>
+    <div class="actions">
+      <button class="btn-primary" id="addBtn">Add promo</button>
+      <button class="btn-ghost" id="clearBtn">Clear form</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>YOUR PROMOS</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Bookie</th><th>Account</th><th>Promo</th>
+            <th style="text-align:right">In</th><th style="text-align:right">Back</th>
+            <th style="text-align:right">Bonus</th><th style="text-align:right">Profit</th>
+            <th style="text-align:right">ROI</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="emptyMsg">No promos logged yet. Add your first one above.</div>
+    </div>
+    <div class="actions">
+      <button class="btn-ghost" id="exportBtn">Export to CSV</button>
+      <button class="btn-ghost" id="wipeBtn">Delete all</button>
+    </div>
+    <div class="note" id="storageNote">
+      Your data is saved in this browser only — it isn't sent anywhere. Export to CSV every so often as a backup,
+      and note that clearing your browser data will wipe it.
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const KEY = 'promobet_tracker_v1';
+  let rows = [];
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(raw) rows = JSON.parse(raw) || [];
+    }catch(e){
+      rows = [];
+      $('storageNote').textContent =
+        'Saving is unavailable in this view, so entries will disappear on refresh. Open the hosted page to save properly.';
+    }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(rows)); }catch(e){}
+  }
+
+  const money = n => (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+  const pct = n => (isFinite(n) ? n.toFixed(1) : '0.0') + '%';
+
+  function calcRow(r){
+    const profit = (r.cashBack || 0) - (r.cashIn || 0) + (r.bonusCash || 0);
+    const roi = r.cashIn > 0 ? (profit / r.cashIn) * 100 : 0;
+    return { profit, roi };
+  }
+
+  function updatePreview(){
+    const cashIn = parseFloat($('cashIn').value) || 0;
+    const cashBack = parseFloat($('cashBack').value) || 0;
+    const bonusCash = parseFloat($('bonusCash').value) || 0;
+    const profit = cashBack - cashIn + bonusCash;
+    const roi = cashIn > 0 ? (profit / cashIn) * 100 : 0;
+    const cls = profit < 0 ? ' class="neg"' : '';
+    $('preview').innerHTML =
+      'Profit: <strong' + cls + '>' + money(profit) + '</strong> &nbsp;·&nbsp; ROI: <strong' + cls + '>' + pct(roi) + '</strong>';
+  }
+
+  function render(){
+    const tb = $('tbody');
+    tb.innerHTML = '';
+    $('emptyMsg').style.display = rows.length ? 'none' : 'block';
+
+    let totalProfit = 0, totalIn = 0;
+    rows.forEach((r, i) => {
+      const { profit, roi } = calcRow(r);
+      totalProfit += profit;
+      totalIn += (r.cashIn || 0);
+
+      const tr = document.createElement('tr');
+      const cls = profit < 0 ? 'neg' : 'pos';
+      tr.innerHTML =
+        '<td>' + (r.date || '') + '</td>' +
+        '<td>' + (r.bookie || '') + '</td>' +
+        '<td>' + (r.account || '') + '</td>' +
+        '<td>' + (r.promo || '') + '</td>' +
+        '<td class="num">' + money(r.cashIn || 0) + '</td>' +
+        '<td class="num">' + money(r.cashBack || 0) + '</td>' +
+        '<td class="num">' + money(r.bonusCash || 0) + '</td>' +
+        '<td class="num ' + cls + '">' + money(profit) + '</td>' +
+        '<td class="num ' + cls + '">' + pct(roi) + '</td>' +
+        '<td><button class="del" data-i="' + i + '" title="Delete">&times;</button></td>';
+      tb.appendChild(tr);
+    });
+
+    const overallRoi = totalIn > 0 ? (totalProfit / totalIn) * 100 : 0;
+    const avg = rows.length ? totalProfit / rows.length : 0;
+
+    $('sTotal').textContent = money(totalProfit);
+    $('sTotal').className = 'value ' + (totalProfit < 0 ? 'neg' : (totalProfit > 0 ? 'pos' : ''));
+    $('sRoi').textContent = pct(overallRoi);
+    $('sRoi').className = 'value ' + (overallRoi < 0 ? 'neg' : (overallRoi > 0 ? 'pos' : ''));
+    $('sCount').textContent = rows.length;
+    $('sAvg').textContent = money(avg);
+    $('sAvg').className = 'value ' + (avg < 0 ? 'neg' : (avg > 0 ? 'pos' : ''));
+  }
+
+  $('addBtn').addEventListener('click', () => {
+    const cashIn = parseFloat($('cashIn').value);
+    if(!isFinite(cashIn)){ alert('Enter how much money you put in.'); return; }
+    rows.unshift({
+      date: $('date').value || new Date().toISOString().slice(0,10),
+      bookie: $('bookie').value.trim(),
+      account: $('account').value.trim(),
+      promo: $('promo').value.trim(),
+      cashIn: cashIn,
+      cashBack: parseFloat($('cashBack').value) || 0,
+      bonusCash: parseFloat($('bonusCash').value) || 0
+    });
+    save(); render(); clearForm();
+  });
+
+  function clearForm(){
+    ['bookie','account','promo','cashIn','cashBack','bonusCash'].forEach(id => $(id).value = '');
+    updatePreview();
+  }
+  $('clearBtn').addEventListener('click', clearForm);
+
+  $('tbody').addEventListener('click', e => {
+    if(e.target.classList.contains('del')){
+      rows.splice(parseInt(e.target.dataset.i, 10), 1);
+      save(); render();
+    }
+  });
+
+  $('wipeBtn').addEventListener('click', () => {
+    if(confirm('Delete every promo you have logged? This cannot be undone.')){
+      rows = []; save(); render();
+    }
+  });
+
+  $('exportBtn').addEventListener('click', () => {
+    const head = ['Date','Bookie','Account','Promo','Money in','Money back','Bonus cash','Profit','ROI %'];
+    const lines = [head.join(',')];
+    rows.forEach(r => {
+      const { profit, roi } = calcRow(r);
+      lines.push([
+        r.date,
+        '"' + (r.bookie||'').replace(/"/g,'""') + '"',
+        '"' + (r.account||'').replace(/"/g,'""') + '"',
+        '"' + (r.promo||'').replace(/"/g,'""') + '"',
+        (r.cashIn||0).toFixed(2), (r.cashBack||0).toFixed(2), (r.bonusCash||0).toFixed(2),
+        profit.toFixed(2), roi.toFixed(1)
+      ].join(','));
+    });
+    const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'promobet-tracker.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  ['cashIn','cashBack','bonusCash'].forEach(id => $(id).addEventListener('input', updatePreview));
+
+  $('date').value = new Date().toISOString().slice(0,10);
+  load(); render(); updatePreview();
+</script>
+</body>
+</html>
